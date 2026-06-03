@@ -78,4 +78,8 @@ LANGCHAIN_PROJECT=data-analysis-agent
 
 ## Screenshots
 
-<!-- Add screenshots here -->
+**Streamlit UI — inline chart answer**
+![Streamlit UI](screenshots/Screenshot%202026-06-03%20at%206.05.45%20AM.png)
+
+**LangSmith trace — node-by-node breakdown**
+![LangSmith trace](screenshots/Screenshot%202026-06-03%20at%206.05.05%20AM.png)
