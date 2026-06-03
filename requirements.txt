@@ -22,8 +22,5 @@ streamlit
 # Observability
 langsmith
 
-# UI
-streamlit
-
 # Environment
 python-dotenv
