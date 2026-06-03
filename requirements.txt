@@ -16,6 +16,9 @@ numpy
 # E2B
 e2b-code-interpreter
 
+# UI
+streamlit
+
 # Observability
 langsmith
 
