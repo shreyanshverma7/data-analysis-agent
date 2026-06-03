@@ -19,5 +19,8 @@ e2b-code-interpreter
 # Observability
 langsmith
 
+# UI
+streamlit
+
 # Environment
 python-dotenv
