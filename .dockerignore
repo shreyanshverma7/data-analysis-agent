@@ -1,0 +1,8 @@
+.env
+__pycache__
+*.pyc
+.git
+outputs/
+data/*.csv
+TEST.md
+AGENT_STEPS.md

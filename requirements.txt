@@ -1,0 +1,23 @@
+# LangChain / LangGraph
+langchain
+langchain-core
+langchain-groq
+langchain-experimental
+langgraph
+
+# Groq
+groq
+
+# Data & Plotting
+pandas
+matplotlib
+numpy
+
+# E2B
+e2b-code-interpreter
+
+# Observability
+langsmith
+
+# Environment
+python-dotenv
