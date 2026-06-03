@@ -22,6 +22,9 @@ def analyst_node(state: AgentState) -> dict:
     window = config.SLIDING_WINDOW
     recent_messages = state["messages"][-(window * 2):] if state["messages"] else []
 
+    FOLLOW_UP_WORDS = {"that", "it", "those", "this", "them", "they"}
+    is_follow_up = any(w in FOLLOW_UP_WORDS for w in state["question"].lower().split())
+
     if state["replan_count"] > 0:
         user_content = (
             f"The previous plan failed during execution.\n\n"
@@ -32,10 +35,18 @@ def analyst_node(state: AgentState) -> dict:
             f"DataFrame schema:\n{state['df_schema']}"
         )
     else:
-        user_content = (
-            f"Question: {state['question']}\n\n"
-            f"DataFrame schema:\n{state['df_schema']}"
-        )
+        if is_follow_up and len(recent_messages) >= 2:
+            user_content = (
+                f"Prior question: {recent_messages[-2].content}\n"
+                f"Prior answer: {recent_messages[-1].content}\n\n"
+                f"Follow-up question: {state['question']}\n\n"
+                f"DataFrame schema:\n{state['df_schema']}"
+            )
+        else:
+            user_content = (
+                f"Question: {state['question']}\n\n"
+                f"DataFrame schema:\n{state['df_schema']}"
+            )
 
     messages = [SystemMessage(content=SYSTEM_PROMPT)] + recent_messages + [HumanMessage(content=user_content)]
 
