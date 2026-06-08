@@ -1,20 +1,38 @@
-from typing import TypedDict
+import operator
+from typing import Annotated, TypedDict
 
 
 class AgentState(TypedDict):
-    question: str           # original user question
-    df_csv: str             # full CSV string — REPL loads df from this
-    df_schema: str          # shape + dtypes + null counts + head(5)
-    analysis_plan: str      # analyst node → step-by-step plan
-    generated_code: str     # codegen node → raw Python string
-    execution_output: str   # stdout captured from PythonREPLTool
-    execution_error: str    # exception text, empty string if clean run
-    critic_verdict: str     # "pass" or "retry"
-    codegen_retry_count: int  # incremented on each code-gen retry; max 3
-    replan_count: int         # incremented on analyst re-plan; max 1
-    chart_path: str         # abs path to saved .png, or empty string
-    final_answer: str       # summarizer → clean natural-language response
-    messages: list          # full HumanMessage / AIMessage history
+    question: str
+    df_csv: str
+    df_schema: str
+    messages: list
+    chart_path: str
+    final_answer: str
+    specialist_results: Annotated[list, operator.add]
+    synthesis: str
+
+
+class SpecialistState(TypedDict):
+    specialist_type: str
+    question: str
+    df_csv: str
+    df_schema: str
+    overview_plan: str
+    analysis_plan: str
+    generated_code: str
+    execution_output: str
+    execution_error: str
+    chart_path: str
+    result: str
+    codegen_retries: int
+    replan_count: int
+    critic_verdict: str
+    specialist_results: Annotated[list, operator.add]
+
+
+class SpecialistOutput(TypedDict):
+    specialist_results: Annotated[list, operator.add]
 
 
 def default_state(question: str) -> AgentState:
@@ -22,14 +40,9 @@ def default_state(question: str) -> AgentState:
         question=question,
         df_csv="",
         df_schema="",
-        analysis_plan="",
-        generated_code="",
-        execution_output="",
-        execution_error="",
-        critic_verdict="",
-        codegen_retry_count=0,
-        replan_count=0,
+        messages=[],
         chart_path="",
         final_answer="",
-        messages=[],
+        specialist_results=[],
+        synthesis="",
     )

@@ -16,15 +16,43 @@ for key, default in [
     if key not in st.session_state:
         st.session_state[key] = default
 
-NODE_LABELS = {
-    "ingestion":  "Loading data",
-    "analyst":    "Planning analysis",
-    "codegen":    "Generating code",
-    "executor":   "Executing in E2B sandbox",
-    "critic":     "Reviewing output",
-    "retry_router": "Retrying...",
-    "summarizer": "Summarizing answer",
+NODE_STATUS = {
+    "ingestion":     "Loading data...",
+    "fan_out":       "Dispatching specialist agents...",
+    "stats_subgraph": "Computing statistics...",
+    "viz_subgraph":  "Generating visualization...",
+    "narrative":     "Writing interpretation...",
+    "synthesizer":   "Synthesizing answer...",
+    "summarizer":    "Finalising...",
 }
+
+
+def _render_specialist_expanders(specialist_results: list) -> None:
+    stats_entry = next((e for e in specialist_results if e.get("type") == "stats"), None)
+    viz_entry = next((e for e in specialist_results if e.get("type") == "viz"), None)
+    narrative_entry = next((e for e in specialist_results if e.get("type") == "narrative"), None)
+
+    with st.expander("Stats output"):
+        if stats_entry and stats_entry.get("result"):
+            st.code(stats_entry["result"], language="text")
+        elif stats_entry and stats_entry.get("error"):
+            st.error(f"Stats failed: {stats_entry['error']}")
+        else:
+            st.write("No stats output.")
+
+    with st.expander("Chart"):
+        if viz_entry and viz_entry.get("chart_path"):
+            st.image(viz_entry["chart_path"])
+        elif viz_entry and viz_entry.get("error"):
+            st.error(f"Visualization failed: {viz_entry['error']}")
+        else:
+            st.write("No chart generated.")
+
+    with st.expander("Narrative"):
+        if narrative_entry and narrative_entry.get("result"):
+            st.write(narrative_entry["result"])
+        else:
+            st.write("No narrative available.")
 
 
 def _build_schema(df: pd.DataFrame) -> str:
@@ -81,6 +109,7 @@ for entry in st.session_state.chat_history:
         st.write(entry["answer"])
         if entry["chart_path"]:
             st.image(entry["chart_path"])
+        _render_specialist_expanders(entry.get("specialist_results", []))
 
 if not st.session_state.df_csv:
     st.info("Upload a CSV file in the sidebar to begin.")
@@ -98,15 +127,57 @@ if question:
     state["df_schema"] = st.session_state.df_schema
 
     current_state = dict(state)
+    current_state.setdefault("specialist_results", [])
 
-    with st.status("Working...", expanded=True) as status:
-        for event in graph.stream(state, stream_mode="updates"):
-            node_name = next(iter(event))
-            partial_update = event[node_name]
-            if partial_update:
+    col_stats, col_viz = st.columns(2)
+    stats_ph = col_stats.empty()
+    viz_ph = col_viz.empty()
+    narrative_ph = st.empty()
+    status_ph = st.empty()
+
+    stats_ph.info("Stats agent — waiting")
+    viz_ph.info("Viz agent — waiting")
+
+    for event in graph.stream(state, stream_mode="updates"):
+        node_name = next(iter(event))
+        partial_update = event[node_name]
+        if partial_update:
+            if "specialist_results" in partial_update:
+                current_state["specialist_results"] = (
+                    current_state["specialist_results"] + partial_update["specialist_results"]
+                )
+                rest = {k: v for k, v in partial_update.items() if k != "specialist_results"}
+                current_state.update(rest)
+            else:
                 current_state.update(partial_update)
-            status.update(label=NODE_LABELS.get(node_name, node_name))
-        status.update(label="Done", state="complete")
+
+        if "stats_subgraph" in node_name:
+            stats_ph.info("Stats agent — running...")
+        elif "viz_subgraph" in node_name:
+            viz_ph.info("Viz agent — running...")
+        elif node_name == "narrative":
+            narrative_ph.info("Narrative — writing interpretation...")
+        elif node_name in ("synthesizer", "summarizer"):
+            narrative_ph.info("Synthesizer — building answer...")
+
+        status_ph.info(NODE_STATUS.get(node_name, node_name))
+
+    specialist_results = current_state.get("specialist_results", [])
+    stats_entry = next((e for e in specialist_results if e.get("type") == "stats"), None)
+    viz_entry = next((e for e in specialist_results if e.get("type") == "viz"), None)
+
+    if stats_entry and stats_entry.get("result"):
+        stats_ph.success("Stats agent — done ✓")
+    else:
+        stats_ph.error("Stats agent — failed ✗")
+
+    if viz_entry and viz_entry.get("chart_path"):
+        viz_ph.success("Viz agent — done ✓")
+    else:
+        viz_ph.error("Viz agent — failed ✗")
+
+    narrative_ph.success("Narrative — done ✓")
+    status_ph.success("Complete")
 
     answer = current_state.get("final_answer", "")
     chart_path = current_state.get("chart_path", "")
@@ -116,20 +187,43 @@ if question:
         st.write(answer)
         if chart_path:
             st.image(chart_path)
+        _render_specialist_expanders(specialist_results)
 
     st.session_state.messages = messages
     st.session_state.chat_history.append({
         "question": question,
         "answer": answer,
         "chart_path": chart_path,
+        "specialist_results": specialist_results,
     })
 
 if st.session_state.chat_history:
     report_parts = []
     for entry in st.session_state.chat_history:
-        report_parts.append(f"## Q: {entry['question']}\n\n{entry['answer']}\n\n")
-        if entry["chart_path"]:
-            report_parts.append(f"*Chart saved to: {entry['chart_path']}*\n\n")
+        report_parts.append(f"## Question\n{entry['question']}\n\n")
+        report_parts.append(f"## Answer\n{entry['answer']}\n\n")
+
+        sr = entry.get("specialist_results")
+        if sr:
+            stats_e = next((e for e in sr if e.get("type") == "stats"), None)
+            viz_e = next((e for e in sr if e.get("type") == "viz"), None)
+            narrative_e = next((e for e in sr if e.get("type") == "narrative"), None)
+
+            stats_text = (stats_e["result"] if stats_e and stats_e.get("result") else "Unavailable")
+            viz_text = (
+                f"Chart saved at: {viz_e['chart_path']}"
+                if viz_e and viz_e.get("chart_path")
+                else "Unavailable"
+            )
+            narrative_text = (
+                narrative_e["result"] if narrative_e and narrative_e.get("result") else "Unavailable"
+            )
+
+            report_parts.append(f"### Stats Output\n{stats_text}\n\n")
+            report_parts.append(f"### Visualization\n{viz_text}\n\n")
+            report_parts.append(f"### Narrative\n{narrative_text}\n\n")
+
+        report_parts.append("---\n\n")
     report_md = "".join(report_parts)
     st.download_button(
         label="Download session report",
