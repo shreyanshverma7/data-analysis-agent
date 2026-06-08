@@ -13,7 +13,10 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise ValueError("GROQ_API_KEY not set in .env")
 
-MODEL_NAME = "llama-3.3-70b-versatile"
+# llama-3.3-70b-versatile: commented out — 100K tokens/day hard cap exhausted in a
+# single eval run (15 questions × ~4K tokens). Scout (Llama 4 MoE, 109B total params,
+# 17B active) provides 500K tokens/day and 30K TPM with comparable quality.
+MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 BASE_DIR = Path(__file__).parent
 DATA_PATH = BASE_DIR / "data" / "titanic.csv"

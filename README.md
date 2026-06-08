@@ -16,21 +16,44 @@ A multi-agent LangGraph pipeline that answers natural-language questions about C
 
 ---
 
+## V2 Features
+
+- **Parallel specialist agents** — Stats and Viz agents run concurrently via LangGraph's Send API, reducing total latency
+- **Hybrid execution model** — Narrative agent runs sequentially after stats, grounding its interpretation in real computed numbers (zero hallucination risk)
+- **LLM-as-judge eval framework** — 15-question eval dataset with deterministic numeric checks + LLM semantic scoring across three dimensions: numeric accuracy, completeness, clarity
+- **LangSmith experiment tracking** — Eval results stored as named experiments, visible alongside trace data
+- **Graceful partial failure** — Single specialist failure degrades gracefully; both computation agents failing triggers a hard stop with a clear error message
+
+---
+
+## Eval Results (V2)
+
+Evaluated on 15 Titanic questions across 4 categories using a hybrid evaluation framework — deterministic numeric checks + LLM-as-judge semantic scoring (`llama-4-scout-17b`).
+
+| Dimension | Score |
+|---|---|
+| Numeric accuracy | 1.00 |
+| Completeness | 0.85 |
+| Clarity | 0.85 |
+| Chart correct | 15/15 |
+
+> Numeric accuracy is checked deterministically (float parsing + tolerance). Completeness and clarity are scored by an LLM judge. Main agent and judge both use `meta-llama/llama-4-scout-17b-16e-instruct`.
+
+---
+
 ## Architecture
 
 ```mermaid
 graph TD
     A([User Question]) --> B[Ingestion]
-    B --> C[Analyst\nGenerate Plan]
-    C --> D[Code-gen\nWrite Code]
-    D --> E[Executor\nE2B Sandbox]
-    E --> F[Critic\nReview Output]
-    F -->|pass| G[Summarizer]
-    F -->|retry| H[Retry Router]
-    H -->|codegen ≤3x| D
-    H -->|replan ≤1x| C
-    H -->|exhausted| I([Hard Stop])
-    G --> J([Answer + Chart])
+    B --> C[Fan-out Coordinator]
+    C -->|Send| D[Stats Subgraph\ncodegen → executor → critic]
+    C -->|Send| E[Viz Subgraph\ncodegen → executor → critic]
+    D -->|fan-in| F[Narrative Node\nLLM-only, grounded in stats]
+    E -->|fan-in| F
+    F --> G[Synthesizer]
+    G --> H[Summarizer]
+    H --> I([Final Answer + Chart])
 ```
 
 ---
@@ -83,3 +106,9 @@ LANGCHAIN_PROJECT=data-analysis-agent
 
 **LangSmith trace — node-by-node breakdown**
 ![LangSmith trace](screenshots/langsmith-trace.png)
+
+---
+
+## Known Limits
+
+- **Type 2 sequential questions** — Questions where the visualization depends on specific intermediate results from the stats agent (e.g. "find the 3 most correlated features, then plot only those") are not supported. Both agents start from the same input and cannot pass intermediate results to each other. Standard filter-then-compute questions ("show survival rate for passengers over 60") work correctly as each agent independently applies the full computation.
