@@ -11,26 +11,63 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import pandas as pd
+
 from agent import run_agent
 from evals.judge import evaluate
 
-_EVAL_SET = os.path.join(os.path.dirname(__file__), "titanic_eval_set.jsonl")
-_CACHE_FILE = os.path.join(os.path.dirname(__file__), "answers_cache.json")
+_DEFAULT_EVAL_SET = os.path.join(os.path.dirname(__file__), "titanic_eval_set.jsonl")
 
 
-def _load_dataset() -> list:
-    with open(_EVAL_SET) as f:
+def _cache_path(eval_set: str) -> str:
+    stem = os.path.splitext(os.path.basename(eval_set))[0]
+    return os.path.join(os.path.dirname(__file__), f"answers_cache_{stem}.json")
+
+
+def _build_schema(df: pd.DataFrame) -> str:
+    parts = [
+        f"Shape: {df.shape[0]} rows × {df.shape[1]} columns",
+        "",
+        "Column dtypes:",
+        df.dtypes.to_string(),
+        "",
+        "Null counts:",
+        df.isnull().sum().to_string(),
+        "",
+        "First 5 rows:",
+        df.head(5).to_string(index=False),
+    ]
+    return "\n".join(parts)
+
+
+def _load_dataset(eval_set: str) -> list:
+    with open(eval_set) as f:
         return [json.loads(line) for line in f if line.strip()]
 
 
-def run_agent_pass() -> None:
-    entries = _load_dataset()
+def run_agent_pass(eval_set: str, dataset: str | None) -> None:
+    entries = _load_dataset(eval_set)
+    cache_file = _cache_path(eval_set)
+
+    df_csv = ""
+    df_schema = ""
+    if dataset:
+        ext = dataset.rsplit(".", 1)[-1].lower()
+        if ext in ("xlsx", "xls"):
+            df = pd.read_excel(dataset)
+        elif ext == "json":
+            df = pd.read_json(dataset)
+        else:
+            df = pd.read_csv(dataset)
+        df_csv = df.to_csv(index=False)
+        df_schema = _build_schema(df)
+
     cache = []
 
     for i, entry in enumerate(entries, 1):
         print(f"[{i:02d}/{len(entries)}] {entry['question'][:50]}...")
         try:
-            result = run_agent(entry["question"], [])
+            result = run_agent(entry["question"], [], df_csv=df_csv, df_schema=df_schema)
             cache.append({
                 "id": entry["id"],
                 "category": entry["category"],
@@ -53,16 +90,17 @@ def run_agent_pass() -> None:
             print(f"  sleeping 25s...")
             time.sleep(25)
 
-    with open(_CACHE_FILE, "w") as f:
+    with open(cache_file, "w") as f:
         json.dump(cache, f, indent=2)
-    print(f"\nAgent pass complete. Answers saved to: {_CACHE_FILE}")
+    print(f"\nAgent pass complete. Answers saved to: {cache_file}")
 
 
-def run_judge_pass() -> str:
-    with open(_CACHE_FILE) as f:
+def run_judge_pass(eval_set: str) -> str:
+    cache_file = _cache_path(eval_set)
+    with open(cache_file) as f:
         cache = json.load(f)
 
-    entries = {e["id"]: e for e in _load_dataset()}
+    entries = {e["id"]: e for e in _load_dataset(eval_set)}
     results = []
 
     for item in cache:
@@ -133,12 +171,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--agent-pass", action="store_true")
     parser.add_argument("--judge-pass", action="store_true")
+    parser.add_argument("--eval-set", default=_DEFAULT_EVAL_SET)
+    parser.add_argument("--dataset", default=None)
     args = parser.parse_args()
 
     if args.agent_pass:
-        run_agent_pass()
+        run_agent_pass(args.eval_set, args.dataset)
     elif args.judge_pass:
-        run_judge_pass()
+        run_judge_pass(args.eval_set)
     else:
-        run_agent_pass()
-        run_judge_pass()
+        run_agent_pass(args.eval_set, args.dataset)
+        run_judge_pass(args.eval_set)

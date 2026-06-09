@@ -26,18 +26,24 @@ A multi-agent LangGraph pipeline that answers natural-language questions about C
 
 ---
 
-## Eval Results (V2)
+## V3 Features
 
-Evaluated on 15 Titanic questions across 4 categories using a hybrid evaluation framework — deterministic numeric checks + LLM-as-judge semantic scoring (`llama-4-scout-17b`).
+- **Multi-format upload** — Accepts CSV, Excel (`.xlsx`, `.xls`), and JSON in addition to CSV
+- **Adaptive routing** — Fan-out inspects the dataset schema; viz specialist is skipped for non-numeric datasets, avoiding wasted retries
+- **Generalization proven on two datasets** — Evaluated on Titanic (891 rows) and UCI Red Wine Quality (1,599 rows, 12 numeric columns)
 
-| Dimension | Score |
-|---|---|
-| Numeric accuracy | 1.00 |
-| Completeness | 0.85 |
-| Clarity | 0.85 |
-| Chart correct | 15/15 |
+---
 
-> Numeric accuracy is checked deterministically (float parsing + tolerance). Completeness and clarity are scored by an LLM judge. Main agent and judge both use `meta-llama/llama-4-scout-17b-16e-instruct`.
+## Eval Results
+
+Evaluated on two datasets using a hybrid framework — deterministic numeric checks + LLM-as-judge semantic scoring (`llama-4-scout-17b`).
+
+| Dataset | Questions | Numeric accuracy | Completeness | Clarity | Chart correct |
+|---|---|---|---|---|---|
+| Titanic (V2) | 15 | 1.00 | 0.85 | 0.85 | 15/15 |
+| Wine Quality (V3) | 10 | 0.90 | 0.84 | 0.84 | 10/10 |
+
+> Numeric accuracy is checked deterministically (float parsing + tolerance). Completeness and clarity are scored by an LLM judge.
 
 ---
 

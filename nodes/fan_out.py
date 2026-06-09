@@ -40,7 +40,12 @@ def fan_out_node(state: AgentState) -> list[Send]:
         specialist_results=[],
     )
 
-    return [
-        Send("stats_subgraph", stats_state),
-        Send("viz_subgraph", viz_state),
-    ]
+    numeric_markers = ("int64", "float64", "datetime")
+    has_numeric = any(m in state["df_schema"] for m in numeric_markers)
+
+    if has_numeric:
+        return [
+            Send("stats_subgraph", stats_state),
+            Send("viz_subgraph", viz_state),
+        ]
+    return [Send("stats_subgraph", stats_state)]

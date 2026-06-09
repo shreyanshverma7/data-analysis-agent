@@ -40,13 +40,12 @@ def _render_specialist_expanders(specialist_results: list) -> None:
         else:
             st.write("No stats output.")
 
-    with st.expander("Chart"):
-        if viz_entry and viz_entry.get("chart_path"):
-            st.image(viz_entry["chart_path"])
-        elif viz_entry and viz_entry.get("error"):
-            st.error(f"Visualization failed: {viz_entry['error']}")
-        else:
-            st.write("No chart generated.")
+    if viz_entry is not None:
+        with st.expander("Chart"):
+            if viz_entry.get("chart_path"):
+                st.image(viz_entry["chart_path"])
+            else:
+                st.error(f"Visualization failed: {viz_entry.get('error', 'unknown error')}")
 
     with st.expander("Narrative"):
         if narrative_entry and narrative_entry.get("result"):
@@ -73,11 +72,17 @@ def _build_schema(df: pd.DataFrame) -> str:
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
-    uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+    uploaded_file = st.file_uploader("Upload a CSV file", type=["csv", "xlsx", "xls", "json"])
 
     if uploaded_file is not None:
         if uploaded_file.name != st.session_state["_loaded_filename"]:
-            df = pd.read_csv(uploaded_file)
+            _ext = uploaded_file.name.split(".")[-1].lower()
+            if _ext in ("xlsx", "xls"):
+                df = pd.read_excel(uploaded_file)
+            elif _ext == "json":
+                df = pd.read_json(uploaded_file)
+            else:
+                df = pd.read_csv(uploaded_file)
             st.session_state.df_csv = df.to_csv(index=False)
             st.session_state.df_schema = _build_schema(df)
             st.session_state.messages = []
@@ -129,14 +134,20 @@ if question:
     current_state = dict(state)
     current_state.setdefault("specialist_results", [])
 
-    col_stats, col_viz = st.columns(2)
-    stats_ph = col_stats.empty()
-    viz_ph = col_viz.empty()
+    numeric_markers = ("int64", "float64", "datetime")
+    viz_will_run = any(m in st.session_state.df_schema for m in numeric_markers)
+
+    if viz_will_run:
+        col_stats, col_viz = st.columns(2)
+        stats_ph = col_stats.empty()
+        viz_ph = col_viz.empty()
+        viz_ph.info("Viz agent — waiting")
+    else:
+        stats_ph = st.empty()
+        viz_ph = None
+    stats_ph.info("Stats agent — waiting")
     narrative_ph = st.empty()
     status_ph = st.empty()
-
-    stats_ph.info("Stats agent — waiting")
-    viz_ph.info("Viz agent — waiting")
 
     for event in graph.stream(state, stream_mode="updates"):
         node_name = next(iter(event))
@@ -153,7 +164,7 @@ if question:
 
         if "stats_subgraph" in node_name:
             stats_ph.info("Stats agent — running...")
-        elif "viz_subgraph" in node_name:
+        elif "viz_subgraph" in node_name and viz_ph is not None:
             viz_ph.info("Viz agent — running...")
         elif node_name == "narrative":
             narrative_ph.info("Narrative — writing interpretation...")
@@ -171,10 +182,12 @@ if question:
     else:
         stats_ph.error("Stats agent — failed ✗")
 
-    if viz_entry and viz_entry.get("chart_path"):
-        viz_ph.success("Viz agent — done ✓")
-    else:
-        viz_ph.error("Viz agent — failed ✗")
+    if viz_ph is not None:
+        if viz_entry and viz_entry.get("chart_path"):
+            viz_ph.success("Viz agent — done ✓")
+        elif viz_entry:
+            viz_ph.error("Viz agent — failed ✗")
+        # viz_ph is None means viz was intentionally skipped — no indicator needed
 
     narrative_ph.success("Narrative — done ✓")
     status_ph.success("Complete")
