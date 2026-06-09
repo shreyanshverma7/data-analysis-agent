@@ -50,7 +50,6 @@ def viz_analyst_node(state: SpecialistState) -> dict:
     else:
         user_content = (
             f"Question: {state['question']}\n\n"
-            f"Overview plan:\n{state['overview_plan']}\n\n"
             f"DataFrame schema:\n{state['df_schema']}"
         )
 

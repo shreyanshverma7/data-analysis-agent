@@ -3,9 +3,13 @@ from state import default_state
 from langchain_core.messages import HumanMessage, AIMessage
 
 
-def run_agent(question: str, messages: list) -> dict:
+def run_agent(question: str, messages: list, df_csv: str = "", df_schema: str = "") -> dict:
     state = default_state(question)
     state["messages"] = messages
+    if df_csv:
+        state["df_csv"] = df_csv
+    if df_schema:
+        state["df_schema"] = df_schema
     try:
         result = graph.invoke(state)
     except Exception as e:

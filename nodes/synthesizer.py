@@ -32,9 +32,10 @@ def synthesizer_node(state: AgentState) -> dict:
             narrative_entry = entry
 
     stats_failed = stats_entry is None or not stats_entry.get("result")
-    viz_failed = viz_entry is None or not viz_entry.get("chart_path")
+    viz_skipped = viz_entry is None
+    viz_failed = (not viz_skipped) and not viz_entry.get("chart_path")
 
-    if stats_failed and viz_failed:
+    if stats_failed and (viz_skipped or viz_failed):
         return {
             "final_answer": _BOTH_FAILED,
             "synthesis": "",
@@ -48,10 +49,11 @@ def synthesizer_node(state: AgentState) -> dict:
     else:
         parts.append("Stats: unavailable (failed)")
 
-    if not viz_failed:
+    if not viz_skipped and not viz_failed:
         parts.append(f"Visualization: chart saved at {viz_entry['chart_path']}")
-    else:
+    elif viz_failed:
         parts.append("Visualization: unavailable (failed)")
+    # viz_skipped: omit visualization section entirely
 
     if narrative_entry and narrative_entry.get("result"):
         parts.append(f"Narrative interpretation:\n{narrative_entry['result']}")

@@ -6,7 +6,7 @@ outputs/
 .DS_Store
 
 # Eval runtime artifacts
-evals/answers_cache.json
+evals/answers_cache*.json
 evals/results_*.json
 
 # IDE
