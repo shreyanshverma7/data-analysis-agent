@@ -1,6 +1,7 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
 import config
+from schemas import NarrativeOutput
 from state import AgentState
 
 _SYSTEM_PROMPT = (
@@ -38,12 +39,12 @@ def narrative_node(state: AgentState) -> dict:
         system_prompt = _SYSTEM_PROMPT_FALLBACK
 
     try:
-        llm = config.get_llm(temperature=0.0)
+        llm = config.get_llm(temperature=0.0).with_structured_output(NarrativeOutput)
         response = llm.invoke([
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_content),
         ])
-        result = response.content.strip()
+        result = response.interpretation
         error = None
     except Exception as e:
         result = None

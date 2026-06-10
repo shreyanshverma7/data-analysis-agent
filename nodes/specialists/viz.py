@@ -7,15 +7,12 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
 import config
+from schemas import AnalysisPlan
 from state import SpecialistState, SpecialistOutput
 
 _ANALYST_PROMPT = """You are a data visualization expert. Produce a concise plan to generate one chart that best answers the question. Describe what to plot, which columns to use, and what chart type. No statistics or print statements — the only output is a saved chart.
 
-Rules:
-- Output ONLY numbered plan steps — no code, no prose, no markdown headers.
-- Each step must be a single, concrete action.
-- Reference actual column names from the schema.
-- Keep the plan to 5 steps or fewer."""
+Each step must be a single, concrete action referencing actual column names from the schema. Keep the plan to 5 steps or fewer. Set expected_output_type to 'chart'."""
 
 _CODEGEN_PROMPT = """Write Python code using pandas and matplotlib only. Generate exactly one chart. You MUST save it to outputs/chart.png using plt.savefig('outputs/chart.png', bbox_inches='tight'). Call plt.close() after saving. Do not call plt.show(). The dataframe is already loaded as df. Output raw Python only, no markdown fences.
 
@@ -36,8 +33,6 @@ def _strip_fences(text: str) -> str:
 
 
 def viz_analyst_node(state: SpecialistState) -> dict:
-    llm = config.get_llm(temperature=0.0)
-
     if state["replan_count"] > 0:
         user_content = (
             f"The previous plan failed during execution.\n\n"
@@ -53,22 +48,22 @@ def viz_analyst_node(state: SpecialistState) -> dict:
             f"DataFrame schema:\n{state['df_schema']}"
         )
 
+    llm = config.get_llm(temperature=0.0).with_structured_output(AnalysisPlan)
     response = llm.invoke([
         SystemMessage(content=_ANALYST_PROMPT),
         HumanMessage(content=user_content),
     ])
-    return {"analysis_plan": response.content.strip()}
+    return {"analysis_plan": "\n".join(f"{i}. {s}" for i, s in enumerate(response.steps, 1))}
 
 
 def viz_codegen_node(state: SpecialistState) -> dict:
-    llm = config.get_llm(temperature=0.0)
-
     user_content = (
         f"DataFrame schema (for column/dtype reference only — df is already loaded):\n"
         f"{state['df_schema']}\n\n"
         f"Plan to implement:\n{state['analysis_plan']}"
     )
 
+    llm = config.get_llm(temperature=0.0)
     response = llm.invoke([
         SystemMessage(content=_CODEGEN_PROMPT),
         HumanMessage(content=user_content),
@@ -119,6 +114,7 @@ def viz_executor_node(state: SpecialistState) -> dict:
 
 
 def viz_critic_node(state: SpecialistState) -> dict:
+    # Viz critic stays deterministic — chart-path presence is unambiguous, CriticVerdict is intentionally not used here.
     if state["execution_error"]:
         return {"critic_verdict": "retry"}
 

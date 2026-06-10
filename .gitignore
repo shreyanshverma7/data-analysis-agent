@@ -8,6 +8,7 @@ outputs/
 # Eval runtime artifacts
 evals/answers_cache*.json
 evals/results_*.json
+evals/ci_summary.txt
 
 # IDE
 .vscode/

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
+from langchain_litellm import ChatLiteLLM
 
 load_dotenv()
 
@@ -25,9 +25,12 @@ OUTPUTS_DIR.mkdir(exist_ok=True)
 
 SLIDING_WINDOW = 3
 
-def get_llm(temperature: float = 0.0) -> ChatGroq:
-    return ChatGroq(
-        model=MODEL_NAME,
-        api_key=GROQ_API_KEY,
+_PRIMARY_MODEL = "groq/meta-llama/llama-4-scout-17b-16e-instruct"
+_FALLBACK_MODEL = "groq/llama-3.3-70b-versatile"
+
+def get_llm(temperature: float = 0.0) -> ChatLiteLLM:
+    return ChatLiteLLM(
+        model=_PRIMARY_MODEL,
         temperature=temperature,
+        fallbacks=[ChatLiteLLM(model=_FALLBACK_MODEL, temperature=temperature)],
     )

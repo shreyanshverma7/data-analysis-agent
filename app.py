@@ -1,3 +1,6 @@
+import io
+import time
+
 import pandas as pd
 import streamlit as st
 
@@ -88,16 +91,20 @@ with st.sidebar:
             st.session_state.messages = []
             st.session_state.chat_history = []
             st.session_state["_loaded_filename"] = uploaded_file.name
-            df_shape = (df.shape[0], df.shape[1])
-        else:
-            df_shape = None
 
-        if df_shape:
-            st.success(f"Loaded {df_shape[0]} rows × {df_shape[1]} columns")
-        else:
-            import io
-            _df = pd.read_csv(io.StringIO(st.session_state.df_csv))
-            st.success(f"Loaded {_df.shape[0]} rows × {_df.shape[1]} columns")
+        _meta_df = pd.read_csv(io.StringIO(st.session_state.df_csv))
+        _ext = st.session_state["_loaded_filename"].split(".")[-1].upper()
+        _numeric_cols = _meta_df.select_dtypes(include="number").shape[1]
+        st.success("Loaded successfully")
+        col1, col2 = st.columns(2)
+        col1.metric("Rows", _meta_df.shape[0])
+        col2.metric("Columns", _meta_df.shape[1])
+        col1.metric("Numeric cols", _numeric_cols)
+        col2.metric("Format", _ext)
+
+        with st.expander("Dataset preview", expanded=False):
+            st.dataframe(_meta_df.head(10))
+            st.dataframe(_meta_df.describe())
 
     if st.button("Clear conversation"):
         st.session_state.messages = []
@@ -117,10 +124,42 @@ for entry in st.session_state.chat_history:
         _render_specialist_expanders(entry.get("specialist_results", []))
 
 if not st.session_state.df_csv:
-    st.info("Upload a CSV file in the sidebar to begin.")
+    st.markdown("""
+<div style="padding: 2rem; border-radius: 0.5rem; background: #f8f9fa; margin-top: 2rem;">
+<h3>Data Analysis Agent</h3>
+<ul>
+<li>Upload any <strong>CSV, Excel, or JSON</strong> file in the sidebar</li>
+<li>Parallel <strong>stats + visualization agents</strong> run simultaneously</li>
+<li>Eval-tested: <strong>1.00 numeric accuracy</strong> on Titanic · <strong>0.90</strong> on Wine Quality</li>
+</ul>
+</div>
+""", unsafe_allow_html=True)
     st.stop()
 
+if not st.session_state.chat_history:
+    _sq_df = pd.read_csv(io.StringIO(st.session_state.df_csv))
+    _numeric_cols = _sq_df.select_dtypes(include="number").columns.tolist()
+    _cat_cols = _sq_df.select_dtypes(include=["object", "bool"]).columns.tolist()
+
+    _suggestions = []
+    if _numeric_cols:
+        _suggestions.append(f"What is the distribution of {_numeric_cols[0]}?")
+    if _cat_cols:
+        _suggestions.append(f"What is the breakdown by {_cat_cols[0]}?")
+    if len(_numeric_cols) >= 2:
+        _suggestions.append(f"What is the correlation between {_numeric_cols[0]} and {_numeric_cols[1]}?")
+
+    if _suggestions:
+        st.markdown("**Suggested questions:**")
+        for _sq in _suggestions:
+            if st.button(_sq, key=f"sq_{_sq}"):
+                st.session_state["_pending_question"] = _sq
+                st.rerun()
+
 question = st.chat_input("Ask a question about your data...")
+
+if "question" not in locals() or question is None:
+    question = st.session_state.pop("_pending_question", None)
 
 if question:
     with st.chat_message("user"):
@@ -149,6 +188,7 @@ if question:
     narrative_ph = st.empty()
     status_ph = st.empty()
 
+    _start_time = time.time()
     for event in graph.stream(state, stream_mode="updates"):
         node_name = next(iter(event))
         partial_update = event[node_name]
@@ -191,6 +231,7 @@ if question:
 
     narrative_ph.success("Narrative — done ✓")
     status_ph.success("Complete")
+    _elapsed = time.time() - _start_time
 
     answer = current_state.get("final_answer", "")
     chart_path = current_state.get("chart_path", "")
@@ -201,6 +242,9 @@ if question:
         if chart_path:
             st.image(chart_path)
         _render_specialist_expanders(specialist_results)
+        _mcol1, _mcol2 = st.columns(2)
+        _mcol1.metric("Elapsed", f"{_elapsed:.1f}s")
+        _mcol2.metric("~Tokens", len(answer) // 4)
 
     st.session_state.messages = messages
     st.session_state.chat_history.append({

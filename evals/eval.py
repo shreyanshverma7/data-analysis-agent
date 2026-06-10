@@ -45,8 +45,10 @@ def _load_dataset(eval_set: str) -> list:
         return [json.loads(line) for line in f if line.strip()]
 
 
-def run_agent_pass(eval_set: str, dataset: str | None) -> None:
+def run_agent_pass(eval_set: str, dataset: str | None, limit: int | None = None) -> None:
     entries = _load_dataset(eval_set)
+    if limit is not None:
+        entries = entries[:limit]
     cache_file = _cache_path(eval_set)
 
     df_csv = ""
@@ -95,10 +97,12 @@ def run_agent_pass(eval_set: str, dataset: str | None) -> None:
     print(f"\nAgent pass complete. Answers saved to: {cache_file}")
 
 
-def run_judge_pass(eval_set: str) -> str:
+def run_judge_pass(eval_set: str, limit: int | None = None) -> str:
     cache_file = _cache_path(eval_set)
     with open(cache_file) as f:
         cache = json.load(f)
+    if limit is not None:
+        cache = cache[:limit]
 
     entries = {e["id"]: e for e in _load_dataset(eval_set)}
     results = []
@@ -173,12 +177,13 @@ if __name__ == "__main__":
     parser.add_argument("--judge-pass", action="store_true")
     parser.add_argument("--eval-set", default=_DEFAULT_EVAL_SET)
     parser.add_argument("--dataset", default=None)
+    parser.add_argument("--limit", type=int, default=None, help="Only run the first N questions from the eval set.")
     args = parser.parse_args()
 
     if args.agent_pass:
-        run_agent_pass(args.eval_set, args.dataset)
+        run_agent_pass(args.eval_set, args.dataset, args.limit)
     elif args.judge_pass:
-        run_judge_pass(args.eval_set)
+        run_judge_pass(args.eval_set, args.limit)
     else:
-        run_agent_pass(args.eval_set, args.dataset)
-        run_judge_pass(args.eval_set)
+        run_agent_pass(args.eval_set, args.dataset, args.limit)
+        run_judge_pass(args.eval_set, args.limit)

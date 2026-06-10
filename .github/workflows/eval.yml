@@ -1,0 +1,48 @@
+name: Eval Gate
+
+on:
+  push:
+    branches:
+      - "feature/v4-*"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      E2B_API_KEY: ${{ secrets.E2B_API_KEY }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Agent pass (first 5 questions)
+        run: python evals/eval.py --agent-pass --eval-set evals/titanic_eval_set.jsonl --dataset data/titanic.csv --limit 5
+
+      - name: Judge pass (first 5 questions)
+        run: python evals/eval.py --judge-pass --eval-set evals/titanic_eval_set.jsonl --limit 5
+
+      - name: Eval gate
+        id: gate
+        if: always()
+        run: python evals/ci_gate.py
+
+      - name: Post PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: evals/ci_summary.txt

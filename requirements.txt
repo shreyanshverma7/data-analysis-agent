@@ -22,5 +22,9 @@ streamlit
 # Observability
 langsmith
 
+# Provider abstraction
+litellm
+langchain-litellm
+
 # Environment
 python-dotenv
