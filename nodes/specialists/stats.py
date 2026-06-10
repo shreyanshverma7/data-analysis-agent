@@ -6,15 +6,12 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, StateGraph
 
 import config
+from schemas import AnalysisPlan, CriticVerdict
 from state import SpecialistState, SpecialistOutput
 
 _ANALYST_PROMPT = """You are a data analyst. Produce a concise analysis plan to answer the question using statistics only. No visualization. Focus on aggregations, counts, means, distributions, correlations.
 
-Rules:
-- Output ONLY numbered plan steps — no code, no prose, no markdown headers.
-- Each step must be a single, concrete action.
-- Reference actual column names from the schema.
-- Keep the plan to 5 steps or fewer."""
+Each step must be a single, concrete action referencing actual column names from the schema. Keep the plan to 5 steps or fewer. Set expected_output_type to 'numeric'."""
 
 _CODEGEN_PROMPT = """Write Python code using pandas only. No matplotlib or any chart. Print all results to stdout. The dataframe is already loaded as df. Output raw Python only, no markdown fences.
 
@@ -24,7 +21,7 @@ Rules:
 - When printing a Series or DataFrame, always use print(result.to_string()).
 - Write clean, minimal code that directly follows the plan steps."""
 
-_CRITIC_PROMPT = "You are a strict output validator. Reply with exactly one word: pass or retry. No other text."
+_CRITIC_PROMPT = "You are a strict output validator. Decide whether the execution output adequately answers the question. Return pass only if numbers or a chart are present and relevant. Give a one-sentence reason."
 
 
 def _strip_fences(text: str) -> str:
@@ -34,8 +31,6 @@ def _strip_fences(text: str) -> str:
 
 
 def stats_analyst_node(state: SpecialistState) -> dict:
-    llm = config.get_llm(temperature=0.0)
-
     if state["replan_count"] > 0:
         user_content = (
             f"The previous plan failed during execution.\n\n"
@@ -51,22 +46,22 @@ def stats_analyst_node(state: SpecialistState) -> dict:
             f"DataFrame schema:\n{state['df_schema']}"
         )
 
+    llm = config.get_llm(temperature=0.0).with_structured_output(AnalysisPlan)
     response = llm.invoke([
         SystemMessage(content=_ANALYST_PROMPT),
         HumanMessage(content=user_content),
     ])
-    return {"analysis_plan": response.content.strip()}
+    return {"analysis_plan": "\n".join(f"{i}. {s}" for i, s in enumerate(response.steps, 1))}
 
 
 def stats_codegen_node(state: SpecialistState) -> dict:
-    llm = config.get_llm(temperature=0.0)
-
     user_content = (
         f"DataFrame schema (for column/dtype reference only — df is already loaded):\n"
         f"{state['df_schema']}\n\n"
         f"Plan to implement:\n{state['analysis_plan']}"
     )
 
+    llm = config.get_llm(temperature=0.0)
     response = llm.invoke([
         SystemMessage(content=_CODEGEN_PROMPT),
         HumanMessage(content=user_content),
@@ -101,19 +96,16 @@ def stats_critic_node(state: SpecialistState) -> dict:
     if not state["execution_output"]:
         return {"critic_verdict": "retry"}
 
-    llm = config.get_llm(temperature=0.0)
+    llm = config.get_llm(temperature=0.0).with_structured_output(CriticVerdict)
     user_content = (
         f"Question: {state['question']}\n\n"
-        f"Execution output:\n{state['execution_output']}\n\n"
-        "Does the output adequately answer the question with statistics? "
-        "Reply with exactly one word: pass or retry."
+        f"Execution output:\n{state['execution_output']}"
     )
     response = llm.invoke([
         SystemMessage(content=_CRITIC_PROMPT),
         HumanMessage(content=user_content),
     ])
-    verdict = response.content.strip().lower()
-    return {"critic_verdict": "pass" if verdict.startswith("pass") else "retry"}
+    return {"critic_verdict": response.verdict}
 
 
 def stats_retry_router_node(state: SpecialistState) -> dict:

@@ -1,5 +1,10 @@
 # Data Analysis Agent
 
+![Titanic Eval](https://img.shields.io/badge/titanic--eval-1.00-brightgreen)
+![Wine Eval](https://img.shields.io/badge/wine--eval-0.90-brightgreen)
+![CI](https://img.shields.io/badge/CI-eval--gate-blue)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+
 A multi-agent LangGraph pipeline that answers natural-language questions about CSV data using Groq (Llama 3.3 70B) and executes code in E2B cloud sandboxes.
 
 ---
@@ -31,6 +36,15 @@ A multi-agent LangGraph pipeline that answers natural-language questions about C
 - **Multi-format upload** — Accepts CSV, Excel (`.xlsx`, `.xls`), and JSON in addition to CSV
 - **Adaptive routing** — Fan-out inspects the dataset schema; viz specialist is skipped for non-numeric datasets, avoiding wasted retries
 - **Generalization proven on two datasets** — Evaluated on Titanic (891 rows) and UCI Red Wine Quality (1,599 rows, 12 numeric columns)
+
+---
+
+## V4 Features
+
+- **Structured outputs** — Four LLM nodes (`AnalysisPlan`, `CriticVerdict`, `NarrativeOutput`, `SynthesisOutput`) use Pydantic schemas via `.with_structured_output()` for typed, reliable parsing. Codegen nodes intentionally stay on plain generation — JSON mode cannot serialize multi-line Python code.
+- **LiteLLM provider abstraction** — `get_llm()` returns a `ChatLiteLLM` with a Groq-only fallback chain (Scout 17B → Llama 3.3 70B). All nodes are provider-agnostic; adding a new provider requires only a config change.
+- **CI eval gate** — GitHub Actions runs the first 5 Titanic questions on every PR to `main`. Blocks merge if numeric accuracy drops below 0.80 or chart correctness below 4/5. Posts a score summary as a PR comment.
+- **UI improvements** — Dataset preview (head + describe), sidebar metadata (rows / columns / format), heuristic suggested questions on first load, elapsed time and token estimate displayed per answer.
 
 ---
 
@@ -102,6 +116,8 @@ LANGCHAIN_API_KEY=
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_PROJECT=data-analysis-agent
 ```
+
+> `GROQ_API_KEY` and `E2B_API_KEY` are also required as **GitHub Actions secrets** to run the CI eval gate on pull requests.
 
 ---
 

@@ -1,6 +1,7 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
 import config
+from schemas import SynthesisOutput
 from state import AgentState
 
 _SYSTEM_PROMPT = (
@@ -60,12 +61,12 @@ def synthesizer_node(state: AgentState) -> dict:
 
     user_content = "\n\n".join(parts)
 
-    llm = config.get_llm(temperature=0.0)
+    llm = config.get_llm(temperature=0.0).with_structured_output(SynthesisOutput)
     response = llm.invoke([
         SystemMessage(content=_SYSTEM_PROMPT),
         HumanMessage(content=user_content),
     ])
-    answer = response.content.strip()
+    answer = response.answer
 
     chart_path = (
         viz_entry["chart_path"]
