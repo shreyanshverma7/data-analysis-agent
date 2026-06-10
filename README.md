@@ -9,7 +9,7 @@ A multi-agent LangGraph pipeline that answers natural-language questions about C
 
 ---
 
-## Features
+## V1 Features
 
 - Multi-turn conversation with sliding-window memory
 - LLM-generated pandas + matplotlib code executed in isolated E2B sandboxes
