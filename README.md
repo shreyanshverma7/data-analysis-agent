@@ -87,13 +87,15 @@ graph TD
 - [Streamlit](https://streamlit.io)
 - pandas, matplotlib
 - [LangSmith](https://smith.langchain.com)
-- Docker, Railway
+- Docker, Render
 
 ---
 
 ## Live Demo
 
-**[data-analysis-agent-production-37db.up.railway.app](https://data-analysis-agent-production-37db.up.railway.app)**
+**[data-analysis-agent.onrender.com](https://data-analysis-agent.onrender.com)**
+
+> Hosted on Render's free tier — the instance spins down after ~15 minutes of inactivity, so the first load can take 30–60 seconds.
 
 ---
 
