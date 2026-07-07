@@ -93,7 +93,7 @@ graph TD
 
 ## Live Demo
 
-**[data-analysis-agent.onrender.com](https://data-analysis-agent.onrender.com)**
+**[data-analysis-agent-qrj3.onrender.com](https://data-analysis-agent-qrj3.onrender.com)**
 
 > Hosted on Render's free tier — the instance spins down after ~15 minutes of inactivity, so the first load can take 30–60 seconds.
 
