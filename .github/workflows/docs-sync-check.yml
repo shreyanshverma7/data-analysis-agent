@@ -1,0 +1,63 @@
+name: Docs Sync Check
+
+"on":
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  docs-sync-check:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for missing docs sync
+        id: check
+        run: |
+          set +e
+
+          CHANGED_FILES=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          CODE_CHANGED=false
+          while IFS= read -r file; do
+          case "$file" in
+          config.py|nodes/*|evals/*|graph.py|state.py|schemas.py|app.py|agent.py)
+          CODE_CHANGED=true
+          ;;
+          esac
+          done <<< "$CHANGED_FILES"
+
+          DOCS_CHANGED=false
+          if echo "$CHANGED_FILES" | grep -qxE 'CLAUDE\.md|docs/04-CODE-PLAN\.md'; then
+          DOCS_CHANGED=true
+          fi
+
+          if [ "$CODE_CHANGED" = "true" ] && [ "$DOCS_CHANGED" = "false" ]; then
+          echo "post_comment=true" >> "$GITHUB_OUTPUT"
+          cat > docs_sync_summary.txt <<'EOF'
+          ⚠️ **Docs sync advisory**
+
+          This PR changes core agent code (`config.py`, `nodes/**`, `evals/**`, `graph.py`, `state.py`, `schemas.py`, `app.py`, or `agent.py`) but doesn't touch `CLAUDE.md` or `docs/04-CODE-PLAN.md`.
+
+          If this change affects current state, gotchas, or the active code-plan task, please update those docs in this PR (or confirm no update is needed).
+
+          EOF
+          else
+          echo "post_comment=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit 0
+
+      - name: Post PR comment
+        if: always() && steps.check.outputs.post_comment == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-path: docs_sync_summary.txt
