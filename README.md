@@ -1,7 +1,7 @@
 # Data Analysis Agent
 
-![Titanic Eval](https://img.shields.io/badge/titanic--eval-1.00-brightgreen)
-![Wine Eval](https://img.shields.io/badge/wine--eval-0.90-brightgreen)
+![Titanic Eval](https://img.shields.io/badge/titanic--eval-0.93-brightgreen)
+![Wine Eval](https://img.shields.io/badge/wine--eval-1.00-brightgreen)
 ![CI](https://img.shields.io/badge/CI-eval--gate-blue)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
 
@@ -54,8 +54,8 @@ Evaluated on two datasets using a hybrid framework — deterministic numeric che
 
 | Dataset | Questions | Numeric accuracy | Completeness | Clarity | Chart correct |
 |---|---|---|---|---|---|
-| Titanic (V2) | 15 | 1.00 | 0.85 | 0.85 | 15/15 |
-| Wine Quality (V3) | 10 | 0.90 | 0.84 | 0.84 | 10/10 |
+| Titanic (V2) | 15 | 0.93 | 0.91 | 0.95 | 15/15 |
+| Wine Quality (V3) | 10 | 1.00 | 0.92 | 0.96 | 10/10 |
 
 > Numeric accuracy is checked deterministically (float parsing + tolerance). Completeness and clarity are scored by an LLM judge.
 
