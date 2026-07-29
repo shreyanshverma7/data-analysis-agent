@@ -14,5 +14,5 @@ evals/ci_summary.txt
 .vscode/
 
 # Internal project tooling — not for public repo
-CLAUDE.md
+# CLAUDE.md is now committed: it is the project-os AI context file and governs coding sessions.
 AGENT_STEPS.md

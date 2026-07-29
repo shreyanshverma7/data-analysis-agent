@@ -91,6 +91,32 @@ graph TD
 
 ---
 
+## Status
+
+`v0.4 shipped, iterating on V5` — see [`docs/06-ITERATE.md`](docs/06-ITERATE.md) for the metric
+check and the iterate/archive decision.
+
+---
+
+## Docs
+
+Built with Project OS — full lifecycle docs in [`docs/`](docs/):
+
+| Doc | What's in it |
+|---|---|
+| [`00-INTAKE.md`](docs/00-INTAKE.md) | The idea, category/tier, success definition |
+| [`01-VALIDATION.md`](docs/01-VALIDATION.md) | Competitor scan, platform-risk check, GO verdict |
+| [`02-PRD.md`](docs/02-PRD.md) | Scope — Must / Should / Won't, success metric, scope-change log |
+| [`03-SYSTEM-DESIGN.md`](docs/03-SYSTEM-DESIGN.md) | Architecture, state contracts, ADRs, cross-cutting concerns |
+| [`04-CODE-PLAN.md`](docs/04-CODE-PLAN.md) | Milestones and tasks — the live tracker |
+| [`05-TEST-LAUNCH.md`](docs/05-TEST-LAUNCH.md) | Acceptance verification, test gaps, launch checklist |
+| [`06-ITERATE.md`](docs/06-ITERATE.md) | Post-ship metric check, retro, next-version decision |
+
+Engineering conventions: [`CODING_STANDARDS.md`](CODING_STANDARDS.md).
+AI-session context: [`CLAUDE.md`](CLAUDE.md).
+
+---
+
 ## Live Demo
 
 **[data-analysis-agent-qrj3.onrender.com](https://data-analysis-agent-qrj3.onrender.com)**
