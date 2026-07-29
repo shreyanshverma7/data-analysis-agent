@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from langchain_core.runnables import RunnableWithFallbacks
 from langchain_litellm import ChatLiteLLM
 
 load_dotenv()
@@ -13,10 +14,13 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 if not GROQ_API_KEY:
     raise ValueError("GROQ_API_KEY not set in .env")
 
-# llama-3.3-70b-versatile: commented out — 100K tokens/day hard cap exhausted in a
-# single eval run (15 questions × ~4K tokens). Scout (Llama 4 MoE, 109B total params,
-# 17B active) provides 500K tokens/day and 30K TPM with comparable quality.
-MODEL_NAME = "meta-llama/llama-4-scout-17b-16e-instruct"
+# Groq retired meta-llama/llama-4-scout-17b-16e-instruct on 2026-07-29 — it 404s on
+# every call now. gpt-oss-120b (OpenAI's open-weight MoE, ~5B active params) replaces
+# it: same cost/throughput band as Scout, and stronger native structured-output
+# support, which matters since six nodes call .with_structured_output(). The 70B
+# fallback below is a real LangChain .with_fallbacks() chain now, not a dead kwarg —
+# see get_llm().
+MODEL_NAME = "openai/gpt-oss-120b"
 
 BASE_DIR = Path(__file__).parent
 DATA_PATH = BASE_DIR / "data" / "titanic.csv"
@@ -25,12 +29,10 @@ OUTPUTS_DIR.mkdir(exist_ok=True)
 
 SLIDING_WINDOW = 3
 
-_PRIMARY_MODEL = "groq/meta-llama/llama-4-scout-17b-16e-instruct"
+_PRIMARY_MODEL = "groq/openai/gpt-oss-120b"
 _FALLBACK_MODEL = "groq/llama-3.3-70b-versatile"
 
-def get_llm(temperature: float = 0.0) -> ChatLiteLLM:
-    return ChatLiteLLM(
-        model=_PRIMARY_MODEL,
-        temperature=temperature,
-        fallbacks=[ChatLiteLLM(model=_FALLBACK_MODEL, temperature=temperature)],
-    )
+def get_llm(temperature: float = 0.0) -> RunnableWithFallbacks:
+    primary = ChatLiteLLM(model=_PRIMARY_MODEL, temperature=temperature)
+    fallback = ChatLiteLLM(model=_FALLBACK_MODEL, temperature=temperature)
+    return primary.with_fallbacks([fallback])
