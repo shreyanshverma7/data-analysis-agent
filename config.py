@@ -22,6 +22,10 @@ if not GROQ_API_KEY:
 # see get_llm().
 MODEL_NAME = "openai/gpt-oss-120b"
 
+# D9: judge uses a smaller model than the agent — semantic scoring (completeness/clarity)
+# does not require the same reasoning capability as generating the analysis itself.
+JUDGE_MODEL = "openai/gpt-oss-20b"
+
 BASE_DIR = Path(__file__).parent
 DATA_PATH = BASE_DIR / "data" / "titanic.csv"
 OUTPUTS_DIR = BASE_DIR / "outputs"

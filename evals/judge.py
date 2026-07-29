@@ -5,12 +5,12 @@ import re
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_groq import ChatGroq
 
-import config  # noqa: F401 — ensures .env is loaded before os.environ.get("GROQ_API_KEY")
+import config
 
-# D9: judge uses 17B Scout (30K TPM) — semantic scoring does not require 70B reasoning capability
+
 def _get_judge_llm() -> ChatGroq:
     return ChatGroq(
-        model="meta-llama/llama-4-scout-17b-16e-instruct",
+        model=config.JUDGE_MODEL,
         api_key=os.environ.get("GROQ_API_KEY"),
         temperature=0,
     )
