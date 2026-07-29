@@ -42,7 +42,7 @@ A multi-agent LangGraph pipeline that answers natural-language questions about C
 ## V4 Features
 
 - **Structured outputs** — Four LLM nodes (`AnalysisPlan`, `CriticVerdict`, `NarrativeOutput`, `SynthesisOutput`) use Pydantic schemas via `.with_structured_output()` for typed, reliable parsing. Codegen nodes intentionally stay on plain generation — JSON mode cannot serialize multi-line Python code.
-- **LiteLLM provider abstraction** — `get_llm()` returns a `ChatLiteLLM` with a Groq-only fallback chain (Scout 17B → Llama 3.3 70B). All nodes are provider-agnostic; adding a new provider requires only a config change.
+- **LiteLLM provider abstraction** — `get_llm()` returns a `RunnableWithFallbacks` chaining `openai/gpt-oss-120b` (primary) to `groq/llama-3.3-70b-versatile` (fallback). All nodes are provider-agnostic; adding a new provider requires only a config change.
 - **CI eval gate** — GitHub Actions runs the first 5 Titanic questions on every PR to `main`. Blocks merge if numeric accuracy drops below 0.80 or chart correctness below 4/5. Posts a score summary as a PR comment.
 - **UI improvements** — Dataset preview (head + describe), sidebar metadata (rows / columns / format), heuristic suggested questions on first load, elapsed time and token estimate displayed per answer.
 

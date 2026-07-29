@@ -7,22 +7,23 @@
 > design authored ahead of it. Where the shipped design deviates from what the standards or the
 > README claim, the deviation is stated here rather than smoothed over.
 
-## ⚠️ Current production status (2026-07-29)
+## ⚠️ Current production status (2026-07-30)
 
-Two facts that a reader of this document needs before trusting the stack table below:
+Both issues diagnosed under **HOTFIX H1** in the frozen `AGENT_STEPS.md` are now fixed in `main`:
 
-1. **The pinned LLM is deprecated and the live demo is down.** Groq retired
-   `meta-llama/llama-4-scout-17b-16e-instruct`; it is no longer served on the project's key. Every
-   run — local, CI, and production — fails.
-2. **The LiteLLM fallback chain has never worked.** `config.get_llm()` passes
-   `fallbacks=[ChatLiteLLM(...)]`, but `ChatLiteLLM` defines no `fallbacks` field, so the kwarg is
-   silently absorbed. The "provider abstraction with fallback" capability described below and in
-   the README is, as of this writing, **decorative**. Had it worked, the deprecation above would
-   have degraded to the 70B model and gone unnoticed.
+1. **The pinned LLM was deprecated; it's now repointed.** Groq retired
+   `meta-llama/llama-4-scout-17b-16e-instruct`. `config.py` now runs `openai/gpt-oss-120b` as
+   primary, with `groq/llama-3.3-70b-versatile` as fallback (M4.0.1, PR #8).
+2. **The LiteLLM fallback chain now actually works.** `config.get_llm()` previously passed
+   `fallbacks=[ChatLiteLLM(...)]`, but `ChatLiteLLM` defines no `fallbacks` field, so the kwarg was
+   silently absorbed. It's replaced with a real `.with_fallbacks([...])` chain, and the fallback
+   path was proven to fire with a deliberate failure-injection test (M4.0.2, PR #11): the primary
+   model ID was forced invalid, one real `invoke()` completed via `groq/llama-3.3-70b-versatile`,
+   confirmed via `response_metadata.model`, then reverted.
 
-Both are diagnosed and scoped as **HOTFIX H1** in the frozen `AGENT_STEPS.md`, which has not been
-executed. The stack table below documents the design as it currently stands in source; it is not a
-statement that the system is healthy.
+Remaining hotfix work (M4.0.5–M4.0.7 in `04-CODE-PLAN.md`): README sync, a startup guard for an
+unavailable model, and re-verifying the live Render URL end-to-end. The stack table below documents
+the design as it currently stands in source.
 
 ## Requirements audit (run BEFORE designing — Musk's algorithm, P11)
 
@@ -85,7 +86,7 @@ path.
 | Database | **None** | State is in-memory per session; the uploaded file is serialized to a CSV string inside `AgentState`. See ADR-1 — a deliberate simplicity call, not an oversight |
 | Hosting | **Docker + Render** (free tier) | Migrated from Railway when its free tier ended (Phase 34). Single stateless container, blueprint in `render.yaml`, health check on `/_stcore/health` |
 | Auth | **None** | No accounts, no per-user data — auth would exist only to protect data the app doesn't store. Explicit Won't in `02-PRD.md` |
-| AI/LLM | **Groq — Llama 4 Scout 17B primary, Llama 3.3 70B fallback, via LiteLLM** (`config.get_llm()`) | Groq for free-tier throughput; Scout over 70B because a single 15-question eval run exhausted 70B's daily token cap. **Both halves of this row are currently broken — see the production-status block above.** |
+| AI/LLM | **`openai/gpt-oss-120b` primary, `groq/llama-3.3-70b-versatile` fallback, via LiteLLM** (`config.get_llm()`) | Groq for free-tier throughput; repointed off the deprecated Scout 17B under M4.0.1. Fallback is a real `.with_fallbacks()` chain, proven to fire under M4.0.2 — see the production-status block above. |
 | Code execution | **E2B Code Interpreter** | Generated code runs in an isolated cloud sandbox rather than a local `PythonREPLTool`. This is the grounding mechanism and the security boundary in one |
 | Compute / viz | **pandas + matplotlib** | Executed inside the sandbox; charts written out and surfaced by path |
 | Observability | **LangSmith** | Per-node tracing, and eval runs recorded as named experiments |

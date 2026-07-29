@@ -122,17 +122,16 @@ itself at eval time, instead of pre-writing expected answers.*
 
 #### ⛔ M4.0 — Blocking hotfix (carried over from `AGENT_STEPS.md` HOTFIX H1)
 
-**The app is currently down.** Groq retired `meta-llama/llama-4-scout-17b-16e-instruct`; every run
-— local, CI, and production — fails. H1 was diagnosed on 2026-07-29 but never executed, and it
-lived only in a file that is now frozen and gitignored. It is carried here so it is not lost.
-**Nothing else in M4 can be verified until this lands.**
+**M4.0.1–M4.0.4 have landed** (PRs #8, #9, #10, #11) — the model repoint, a real
+`.with_fallbacks()` chain, the judge-model repoint, and a re-run eval baseline are all in `main`.
+M4.0.5–M4.0.7 remain: README sync, a startup guard, and live-Render re-verification.
 
 | Task | Description | Acceptance criteria | Depends on |
 |---|---|---|---|
-| M4.0.1 *(H1.1)* | `config.py` — repoint models (`openai/gpt-oss-120b` primary, `groq/llama-3.3-70b-versatile` fallback) and replace the dead `fallbacks=` kwarg with LangChain's `.with_fallbacks([...])` | Primary model resolves; fallback is a real, verifiable mechanism | — |
-| M4.0.2 *(H1.2)* | Prove the fallback fires — set a garbage primary model ID, run one query end-to-end, confirm it completes via the fallback, then revert | Query completes without raising, via the fallback path | M4.0.1 |
-| M4.0.3 *(H1.3)* | `evals/judge.py:13` — same deprecated model, hardcoded via `ChatGroq`. Repoint it and have it read a `JUDGE_MODEL` constant from `config.py` (`openai/gpt-oss-20b`) | Judge runs; model selection lives in one file | M4.0.1 |
-| M4.0.4 *(H1.4)* | Re-run the eval suite and compare to the recorded baseline (1.00 Titanic / 0.90 Wine). **Gate on the whole hotfix** — below 0.80 numeric means the model choice is wrong | New scores recorded; README updated if they moved | M4.0.3 |
+| M4.0.1 ✅ *(H1.1, #8)* | `config.py` — repoint models (`openai/gpt-oss-120b` primary, `groq/llama-3.3-70b-versatile` fallback) and replace the dead `fallbacks=` kwarg with LangChain's `.with_fallbacks([...])` | Primary model resolves; fallback is a real, verifiable mechanism | — |
+| M4.0.2 ✅ *(H1.2, #11)* | Prove the fallback fires — set a garbage primary model ID, run one query end-to-end, confirm it completes via the fallback, then revert | Query completes without raising, via the fallback path | M4.0.1 |
+| M4.0.3 ✅ *(H1.3, #9)* | `evals/judge.py:13` — same deprecated model, hardcoded via `ChatGroq`. Repoint it and have it read a `JUDGE_MODEL` constant from `config.py` (`openai/gpt-oss-20b`) | Judge runs; model selection lives in one file | M4.0.1 |
+| M4.0.4 ✅ *(H1.4, #10)* | Re-run the eval suite and compare to the recorded baseline (1.00 Titanic / 0.90 Wine). **Gate on the whole hotfix** — below 0.80 numeric means the model choice is wrong | New scores recorded; README updated if they moved | M4.0.3 |
 | M4.0.5 *(H1.5)* | `README.md` — judge model (line 53), stack link (line 85), eval score table; stop claiming a fallback capability until M4.0.2 proves one | README matches reality | M4.0.4 |
 | M4.0.6 *(H1.6)* | Startup guard — one cheap model-availability check at boot that fails with "model X is no longer served; available: [...]" instead of a raw LiteLLM traceback | Unavailable model produces a legible error in the UI | M4.0.1 |
 | M4.0.7 *(H1.7)* | Deploy and verify the live Render URL end-to-end with one real query | Resume link works | M4.0.5, M4.0.6 |
@@ -183,7 +182,7 @@ lived only in a file that is now frozen and gitignored. It is carried here so it
 | M1 | ✅ | Walking skeleton — Phases 1–2, shipped June 2026 |
 | M2 | ✅ | Core features — Phases 3–20, 23–27 (V1–V4). One row is a false positive: M2.17's LiteLLM fallback never worked, fixed under M4.0 |
 | M3 | ✅ | Ship-ready — Phases 21–22, 28, 34.1–34.5. Live on Render since July 2026 |
-| M4 | 🟨 | In progress. **Blocked by M4.0** — the pinned Groq model was deprecated 2026-07-29 and the live demo is down. V5 tasks (M4.1–M4.26) not started; M4.27 (Railway cleanup) open and independent |
+| M4 | 🟨 | In progress. M4.0.1–M4.0.4 landed (PRs #8, #9, #10, #11) — models repointed, fallback proven real, judge repointed, eval baseline re-run. M4.0.5–M4.0.7 remain. V5 tasks (M4.1–M4.26) not started; M4.27 (Railway cleanup) open and independent |
 
 ---
 *During build: scope temptations → PRD scope-change log. Next after M3: `05-TEST-LAUNCH.md`.*
