@@ -36,6 +36,9 @@ SLIDING_WINDOW = 3
 _PRIMARY_MODEL = "groq/openai/gpt-oss-120b"
 _FALLBACK_MODEL = "groq/llama-3.3-70b-versatile"
 
+# Fallback verified 2026-07-30 (M4.0.2): forced _PRIMARY_MODEL to an invalid id,
+# invoke() completed via _FALLBACK_MODEL (groq/llama-3.3-70b-versatile), confirmed
+# by response_metadata.model. RunnableWithFallbacks works — this is not a dead kwarg.
 def get_llm(temperature: float = 0.0) -> RunnableWithFallbacks:
     primary = ChatLiteLLM(model=_PRIMARY_MODEL, temperature=temperature)
     fallback = ChatLiteLLM(model=_FALLBACK_MODEL, temperature=temperature)

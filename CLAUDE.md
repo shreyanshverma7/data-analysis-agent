@@ -76,17 +76,27 @@ claim tests pass; if you add tests, add the `pyproject.toml` and `ruff` config i
 
 ## Current state / gotchas
 
-**⛔ The app is down. Read this first.**
+**🟨 Hotfix M4.0 in progress — most of it landed, three subtasks remain.**
 
-- **Groq retired `meta-llama/llama-4-scout-17b-16e-instruct` (2026-07-29).** It is no longer served
-  on the project's key. Every run — local, CI, and the live Render demo — fails. Fix is **M4.0** in
-  `docs/04-CODE-PLAN.md` and it blocks the rest of M4.
-- **The LiteLLM fallback has never worked.** `config.get_llm()` passes
-  `fallbacks=[ChatLiteLLM(...)]`, but `ChatLiteLLM` defines no `fallbacks` field — the kwarg is
-  silently absorbed. Prefer LangChain's `.with_fallbacks([...])`, and prove it fires before
-  claiming it (M4.0.2).
-- **`evals/judge.py:13` hardcodes the same dead model** via `ChatGroq`, duplicating model selection
-  instead of importing from `config`. Fix it to read a `JUDGE_MODEL` constant (M4.0.3).
+Groq retired `meta-llama/llama-4-scout-17b-16e-instruct` on 2026-07-29, taking down local, CI, and
+the live Render demo. Root-caused as two separate bugs, both tracked under **M4.0** in
+`docs/04-CODE-PLAN.md`:
+
+- M4.0.1 ✅ — `config.py` repointed to `openai/gpt-oss-120b` primary; the dead `fallbacks=` kwarg
+  on `ChatLiteLLM` (which defines no such field) replaced with a real
+  `.with_fallbacks([...])` chain (PR #8).
+- M4.0.2 ✅ — fallback proven to actually fire: forced `_PRIMARY_MODEL` to an invalid id, ran one
+  real `invoke()`, confirmed via `response_metadata.model` that `groq/llama-3.3-70b-versatile`
+  answered, reverted the temporary change.
+- M4.0.3 ✅ — `evals/judge.py:13`'s hardcoded dead model replaced; judge model now reads
+  `JUDGE_MODEL` from `config.py` (PR #9).
+- M4.0.4 ✅ — eval suite re-run against the repointed models, baseline scores updated (PR #10).
+- M4.0.5–M4.0.7 ⬜ not started — README still needs its judge-model/stack-link/score-table sync,
+  no startup guard exists yet for an unavailable model, and the live Render URL hasn't been
+  re-verified end-to-end since the repoint.
+
+Don't trust this snapshot past its own edit — cross-check `git log --all --oneline`, `git branch
+-a`, and `gh pr list --state all` before assuming a subtask's state.
 
 **Architecture notes that will bite otherwise:**
 
