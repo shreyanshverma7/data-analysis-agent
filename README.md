@@ -50,7 +50,7 @@ A multi-agent LangGraph pipeline that answers natural-language questions about C
 
 ## Eval Results
 
-Evaluated on two datasets using a hybrid framework — deterministic numeric checks + LLM-as-judge semantic scoring (`llama-4-scout-17b`).
+Evaluated on two datasets using a hybrid framework — deterministic numeric checks + LLM-as-judge semantic scoring (`openai/gpt-oss-20b`).
 
 | Dataset | Questions | Numeric accuracy | Completeness | Clarity | Chart correct |
 |---|---|---|---|---|---|
@@ -82,7 +82,7 @@ graph TD
 
 - [LangGraph](https://github.com/langchain-ai/langgraph)
 - [LangChain](https://github.com/langchain-ai/langchain)
-- [Groq / Llama 3.3 70B](https://groq.com)
+- [Groq / gpt-oss-120b](https://groq.com)
 - [E2B Code Interpreter](https://e2b.dev)
 - [Streamlit](https://streamlit.io)
 - pandas, matplotlib
