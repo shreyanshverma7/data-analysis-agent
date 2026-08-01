@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from groq import Groq
 from langchain_core.runnables import RunnableWithFallbacks
 from langchain_litellm import ChatLiteLLM
 
@@ -35,6 +36,42 @@ SLIDING_WINDOW = 3
 
 _PRIMARY_MODEL = "groq/openai/gpt-oss-120b"
 _FALLBACK_MODEL = "groq/llama-3.3-70b-versatile"
+
+
+def _bare(model_id: str) -> str:
+    """Strip LiteLLM's "groq/" provider prefix — Groq's models.list() returns bare ids."""
+    return model_id.removeprefix("groq/")
+
+
+def _fetch_groq_model_ids(timeout: float = 5) -> list[str]:
+    client = Groq(api_key=GROQ_API_KEY)
+    response = client.models.list(timeout=timeout)
+    return [m.id for m in response.data]
+
+
+# M4.0.6: one cheap check at import time so a retired model fails with a legible
+# error at startup instead of a raw LiteLLM traceback surfacing deep in a graph node
+# (see the Scout 17B retirement that started the M4.0 hotfix, above).
+try:
+    available_ids = _fetch_groq_model_ids(timeout=5)   # raises on timeout/network/5xx
+except Exception as exc:
+    print(f"⚠️  could not verify model availability ({type(exc).__name__}) — proceeding unchecked")
+    available_ids = None
+
+if available_ids is not None:
+    primary_missing = _bare(_PRIMARY_MODEL) not in available_ids
+    fallback_missing = _bare(_FALLBACK_MODEL) not in available_ids
+    if primary_missing and fallback_missing:
+        raise ValueError(
+            f"model '{_PRIMARY_MODEL}' is no longer served by Groq; "
+            f"available: {available_ids[:10]}"
+        )
+    elif primary_missing:
+        print(f"⚠️  primary model '{_PRIMARY_MODEL}' is no longer served; "
+              f"falling back to '{_FALLBACK_MODEL}'")
+    elif fallback_missing:
+        print(f"⚠️  fallback model '{_FALLBACK_MODEL}' is no longer served; "
+              f"no protection if '{_PRIMARY_MODEL}' is later retired")
 
 # Fallback verified 2026-07-30 (M4.0.2): forced _PRIMARY_MODEL to an invalid id,
 # invoke() completed via _FALLBACK_MODEL (groq/llama-3.3-70b-versatile), confirmed
