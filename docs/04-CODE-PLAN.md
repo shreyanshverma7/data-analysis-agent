@@ -120,11 +120,12 @@ itself at eval time, instead of pre-writing expected answers.*
 > each Task cell. They were already written at one-session granularity with a concrete file target,
 > so they are not rewritten here.
 
-#### ⛔ M4.0 — Blocking hotfix (carried over from `AGENT_STEPS.md` HOTFIX H1)
+#### ✅ M4.0 — Blocking hotfix, closed (carried over from `AGENT_STEPS.md` HOTFIX H1)
 
-**M4.0.1–M4.0.4 have landed** (PRs #8, #9, #10, #11) — the model repoint, a real
-`.with_fallbacks()` chain, the judge-model repoint, and a re-run eval baseline are all in `main`.
-M4.0.5–M4.0.7 remain: README sync, a startup guard, and live-Render re-verification.
+**All seven subtasks have landed** (PRs #8, #9, #10, #11, #14, #15; M4.0.7 verified manually,
+no PR) — the model repoint, a real `.with_fallbacks()` chain, the judge-model repoint, a re-run
+eval baseline, the README sync, the startup guard, and end-to-end live-Render verification are all
+done. M4.1–M4.26 (V5 proper) are unblocked.
 
 | Task | Description | Acceptance criteria | Depends on |
 |---|---|---|---|
@@ -132,9 +133,9 @@ M4.0.5–M4.0.7 remain: README sync, a startup guard, and live-Render re-verific
 | M4.0.2 ✅ *(H1.2, #11)* | Prove the fallback fires — set a garbage primary model ID, run one query end-to-end, confirm it completes via the fallback, then revert | Query completes without raising, via the fallback path | M4.0.1 |
 | M4.0.3 ✅ *(H1.3, #9)* | `evals/judge.py:13` — same deprecated model, hardcoded via `ChatGroq`. Repoint it and have it read a `JUDGE_MODEL` constant from `config.py` (`openai/gpt-oss-20b`) | Judge runs; model selection lives in one file | M4.0.1 |
 | M4.0.4 ✅ *(H1.4, #10)* | Re-run the eval suite and compare to the recorded baseline (1.00 Titanic / 0.90 Wine). **Gate on the whole hotfix** — below 0.80 numeric means the model choice is wrong | New scores recorded; README updated if they moved | M4.0.3 |
-| M4.0.5 *(H1.5)* | `README.md` — judge model (line 53), stack link (line 85), eval score table; stop claiming a fallback capability until M4.0.2 proves one | README matches reality | M4.0.4 |
-| M4.0.6 *(H1.6)* | Startup guard — one cheap model-availability check at boot that fails with "model X is no longer served; available: [...]" instead of a raw LiteLLM traceback | Unavailable model produces a legible error in the UI | M4.0.1 |
-| M4.0.7 *(H1.7)* | Deploy and verify the live Render URL end-to-end with one real query | Resume link works | M4.0.5, M4.0.6 |
+| M4.0.5 ✅ *(H1.5, #14)* | `README.md` — judge model (line 53), stack link (line 85), eval score table; stop claiming a fallback capability until M4.0.2 proves one | README matches reality | M4.0.4 |
+| M4.0.6 ✅ *(H1.6, #15)* | Startup guard — one cheap model-availability check at boot that fails with "model X is no longer served; available: [...]" instead of a raw LiteLLM traceback | Unavailable model produces a legible error in the UI | M4.0.1 |
+| M4.0.7 ✅ *(H1.7, manual verification)* | Deploy and verify the live Render URL end-to-end with one real query | Resume link works | M4.0.5, M4.0.6 |
 
 #### M4 — V5 tasks
 
@@ -182,7 +183,7 @@ M4.0.5–M4.0.7 remain: README sync, a startup guard, and live-Render re-verific
 | M1 | ✅ | Walking skeleton — Phases 1–2, shipped June 2026 |
 | M2 | ✅ | Core features — Phases 3–20, 23–27 (V1–V4). One row is a false positive: M2.17's LiteLLM fallback never worked, fixed under M4.0 |
 | M3 | ✅ | Ship-ready — Phases 21–22, 28, 34.1–34.5. Live on Render since July 2026 |
-| M4 | 🟨 | In progress. M4.0.1–M4.0.4 landed (PRs #8, #9, #10, #11) — models repointed, fallback proven real, judge repointed, eval baseline re-run. M4.0.5–M4.0.7 remain. V5 tasks (M4.1–M4.26) not started; M4.27 (Railway cleanup) open and independent |
+| M4 | 🟨 | M4.0 hotfix closed (PRs #8, #9, #10, #11, #14, #15 + manual verification for M4.0.7) — models repointed, fallback proven real, judge repointed, eval baseline re-run, README synced, startup guard added, live Render URL verified end-to-end. No longer blocked. V5 tasks (M4.1–M4.26) unblocked and ready to start; M4.27 (Railway cleanup) open and independent |
 
 ---
 *During build: scope temptations → PRD scope-change log. Next after M3: `05-TEST-LAUNCH.md`.*

@@ -10,7 +10,8 @@ an E2B sandbox, and the answer is grounded in the real computed output plus a ch
 
 **Category/Tier:** Portfolio / GitHub · **Tier 2 (Standard)**
 
-**Current milestone:** **M4 — Generic agent, no dataset hardcoding** (= V5), and it is **blocked**.
+**Current milestone:** **M4 — Generic agent, no dataset hardcoding** (= V5). The blocking M4.0
+hotfix is fully closed; M4.1–M4.26 (the actual V5 work) are unblocked and ready to start.
 See "Current state / gotchas" below before writing any code.
 
 ## Read these before coding
@@ -76,11 +77,11 @@ claim tests pass; if you add tests, add the `pyproject.toml` and `ruff` config i
 
 ## Current state / gotchas
 
-**🟨 Hotfix M4.0 in progress — most of it landed, three subtasks remain.**
+**✅ Hotfix M4.0 closed — all seven subtasks landed and verified.**
 
 Groq retired `meta-llama/llama-4-scout-17b-16e-instruct` on 2026-07-29, taking down local, CI, and
-the live Render demo. Root-caused as two separate bugs, both tracked under **M4.0** in
-`docs/04-CODE-PLAN.md`:
+the live Render demo at the time. Root-caused as two separate bugs, both tracked under **M4.0** in
+`docs/04-CODE-PLAN.md`. The repoint is complete and the live app is confirmed working:
 
 - M4.0.1 ✅ — `config.py` repointed to `openai/gpt-oss-120b` primary; the dead `fallbacks=` kwarg
   on `ChatLiteLLM` (which defines no such field) replaced with a real
@@ -91,9 +92,11 @@ the live Render demo. Root-caused as two separate bugs, both tracked under **M4.
 - M4.0.3 ✅ — `evals/judge.py:13`'s hardcoded dead model replaced; judge model now reads
   `JUDGE_MODEL` from `config.py` (PR #9).
 - M4.0.4 ✅ — eval suite re-run against the repointed models, baseline scores updated (PR #10).
-- M4.0.5–M4.0.7 ⬜ not started — README still needs its judge-model/stack-link/score-table sync,
-  no startup guard exists yet for an unavailable model, and the live Render URL hasn't been
-  re-verified end-to-end since the repoint.
+- M4.0.5 ✅ — README judge-model/stack-link/score-table synced to the repointed models (PR #14).
+- M4.0.6 ✅ — startup guard added: an unavailable model now fails at boot with a legible error
+  instead of a raw LiteLLM traceback (PR #15).
+- M4.0.7 ✅ — live Render URL manually verified end-to-end on 2026-07-30: health check and a real
+  query both confirmed working.
 
 Don't trust this snapshot past its own edit — cross-check `git log --all --oneline`, `git branch
 -a`, and `gh pr list --state all` before assuming a subtask's state.
