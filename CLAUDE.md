@@ -34,7 +34,7 @@ it is gitignored, so it exists only in the local working copy.
 | Database | **None** | State in-memory per session; dataset carried as a CSV string in `AgentState`. See ADR-1 |
 | Hosting | Docker + Render (free tier) | Migrated from Railway (Phase 34). Blueprint in `render.yaml`, health check `/_stcore/health` |
 | Auth | None | No accounts, no stored data. Explicit Won't in the PRD |
-| AI/LLM | Groq — Llama 4 Scout 17B primary, Llama 3.3 70B fallback, via LiteLLM (`config.get_llm()`) | Groq for free-tier throughput; Scout over 70B because one eval run exhausted 70B's daily cap. **⚠️ Both halves currently broken — see gotchas** |
+| AI/LLM | Groq — `openai/gpt-oss-120b` primary, `llama-3.3-70b-versatile` fallback, via LiteLLM (`config.get_llm()`) | Groq for free-tier throughput; repointed off the deprecated Scout 17B under M4.0.1. Fallback is a real `.with_fallbacks()` chain, proven to fire under M4.0.2 |
 | Code execution | E2B Code Interpreter | Generated code runs in an isolated sandbox — the grounding mechanism and the security boundary in one |
 | Compute / viz | pandas + matplotlib | Executed inside the sandbox; charts returned by path |
 | Observability | LangSmith | Per-node tracing; eval runs as named experiments |
